@@ -1,30 +1,94 @@
 function intersects(fig1, fig2) {
-  // Замените код функции на полноценную реализацию
+  var intersectionPoints = [];
+  var segments = [];
+  for (var i=0; i< fig1.length; i++)
+  {
+    var segment1 = (i == fig1.length - 1) ? ([fig1[i], fig1[0]] ): ([fig1[i], fig1[i + 1]]);
+    segments.push(segment1);
+    var point = fig1[i];
+    var parity = 0;
+    for (var j=0; j<fig2.length; j++)
+    {
+      var segment2 = (j == fig2.length - 1) ? ([fig2[j], fig2[0]]) : ([fig2[j], fig2[j + 1]]);      
+      var intersectionPoint = segmentsIntersect(segment1,segment2);
+      if(intersectionPoint != null && !contains(intersectionPoints,intersectionPoint)){
+        intersectionPoints.push(intersectionPoint);        
+      }
+      if (getSegmentType(point, segment2) == SegmentType.Crossing) { parity = 1 - parity; }
+    }
+    if (parity == 1 && !contains(intersectionPoints,point))
+    {
+      intersectionPoints.push(point);      
+    }
+  }
+  for (var i=0; i< fig2.length; i++)
+  {    
+    var point = fig2[i];
+    var segment1 = (i == fig2.length - 1) ? ([fig2[i], fig2[0]] ): ([fig2[i], fig2[i + 1]]);
+    segments.push(segment1);
+    if (inside(point, fig1) && !contains(intersectionPoints,point))
+    {
+      intersectionPoints.push(point);
+      console.log(point.x + " " +point.y);
+    }
+  }
+  resultSegments = [];
 
-  return [
-    [
-      { x: 60,  y: 240 },
-      { x: 90,  y: 240 },
-      { x: 120, y: 180 },
-      { x: 90,  y: 90  },
-      { x: 60,  y: 150 },
-    ],
-    [
-      { x: 270, y: 240 },
-      { x: 300, y: 240 },
-      { x: 300, y: 150 },
-      { x: 270, y: 90  },
-      { x: 240, y: 180 },
-    ],
-    [
-      { x: 150, y: 180 },
-      { x: 180, y: 240 },
-      { x: 210, y: 180 },
-      { x: 210, y: 90  },
-      { x: 180, y: 60  },
-      { x: 150, y: 90  }
-    ]
-  ];
+  for (var i=0; i<segments.length; i++){
+    belongPoints = [];
+    for (var j = 0; j<intersectionPoints.length; j++) {
+      if(classifyPoint(intersectionPoints[j],segments[i])==PointClassify.Belong)
+      {
+        belongPoints.push(intersectionPoints[j]);        
+      }
+    }
+    if (belongPoints === undefined) continue;
+    for(var k=0; k<belongPoints.length-1; k++)
+    {
+      for(var l=k+1; l<belongPoints.length; l++)
+      {
+        var midP = middlePoint(belongPoints[k],belongPoints[l]);        
+        if(inside(midP,fig1) || inside(midP,fig2))
+        {
+          resultSegments.push([belongPoints[k],belongPoints[l]]);          
+        }
+      }
+    }
+  }
+  var polygons = []
+
+  for (var i=0; i<resultSegments.length-1; i++)
+  {
+    if(resultSegments[i]==null) continue;
+    var polygon = [];
+    polygon.push(resultSegments[i][0]);
+    polygon.push(resultSegments[i][1]);
+    point = resultSegments[i][1];
+    resultSegments[i]=null;
+    for(var j=i+1; j<resultSegments.length; j++)
+    {
+      if(resultSegments[j]==null) continue;
+      if(EqualPoints(point,resultSegments[j][0]))
+      {
+        point = resultSegments[j][1];        
+      }
+      else if(EqualPoints(point,resultSegments[j][1]))
+      {
+        point = resultSegments[j][0];        
+      }
+      else
+      {
+        continue;
+      }
+      resultSegments[j]=null;
+      if(EqualPoints(polygon[0],point)) break;
+      polygon.push(point)
+      j=i;
+    }
+    polygons.push(polygon);
+  }
+
+  return polygons;
 }
 
 var PointClassify = {
@@ -39,6 +103,29 @@ var SegmentType = {
   Crossing : {value:0, name: "Crossing"},
   Inessential : {value:1, name: "Inessential"}
 };
+
+function contains(a, obj) {
+    var i = a.length;
+    while (i--) {
+       if (a[i] === obj) {
+           return true;
+       }
+       if(EqualPoints(a[i], obj))
+       {
+            return true;
+       }
+    }
+    return false;
+}
+function EqualPoints(point1, point2)
+{
+  if (point1.x==point2.x && point1.y==point2.y)return true;
+}
+
+function middlePoint(point1, point2)
+{
+  return {x:(point1.x+point2.x)/2, y:(point1.y+point2.y)/2};
+}
 
 
 
@@ -82,5 +169,16 @@ function getSegmentType(point, segment)
     default:
       return SegmentType.Inessential;
   }
+}
+
+function inside(point, polygon)
+{
+  var parity = 0;
+    for (var j=0; j<polygon.length; j++)
+    {
+      var segment = (j == polygon.length - 1) ? ([polygon[j], polygon[0]]) : ([polygon[j], polygon[j + 1]]);
+      if (getSegmentType(point, segment) == SegmentType.Crossing) { parity = 1 - parity; }
+    }
+    return parity===1;
 }
 
