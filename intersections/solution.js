@@ -1,60 +1,95 @@
 function intersects(fig1, fig2) {
   var intersectionPoints = [];
-  var segments = [];
+  
   for (var i=0; i< fig1.length; i++)
   {
-    var segment1 = (i == fig1.length - 1) ? ([fig1[i], fig1[0]] ): ([fig1[i], fig1[i + 1]]);
-    segments.push(segment1);
-    var point = fig1[i];
-    var parity = 0;
+    var segment1 = (i == fig1.length - 1) ? ([fig1[i], fig1[0]] ): ([fig1[i], fig1[i + 1]]);       
     for (var j=0; j<fig2.length; j++)
     {
       var segment2 = (j == fig2.length - 1) ? ([fig2[j], fig2[0]]) : ([fig2[j], fig2[j + 1]]);      
       var intersectionPoint = segmentsIntersect(segment1,segment2);
       if(intersectionPoint != null && !contains(intersectionPoints,intersectionPoint)){
         intersectionPoints.push(intersectionPoint);        
-      }
-      if (getSegmentType(point, segment2) == SegmentType.Crossing) { parity = 1 - parity; }
-    }
-    if (parity == 1 && !contains(intersectionPoints,point))
+      }      
+    }    
+  }
+  fig1Segments =[];
+  for (var i=0; i< fig1.length; i++)
+  {    
+    var point = fig1[i];
+    var segment1 = (i == fig1.length - 1) ? ([fig1[i], fig1[0]] ): ([fig1[i], fig1[i + 1]]);
+    fig1Segments.push(segment1);
+    if (inside(point, fig2) && !contains(intersectionPoints,point))
     {
       intersectionPoints.push(point);      
     }
   }
+  fig2Segments =[];
   for (var i=0; i< fig2.length; i++)
   {    
     var point = fig2[i];
-    var segment1 = (i == fig2.length - 1) ? ([fig2[i], fig2[0]] ): ([fig2[i], fig2[i + 1]]);
-    segments.push(segment1);
+    var segment2 = (i == fig2.length - 1) ? ([fig2[i], fig2[0]] ): ([fig2[i], fig2[i + 1]]);
+    fig2Segments.push(segment2);
     if (inside(point, fig1) && !contains(intersectionPoints,point))
     {
-      intersectionPoints.push(point);
-      console.log(point.x + " " +point.y);
+      intersectionPoints.push(point);      
     }
   }
   resultSegments = [];
 
-  for (var i=0; i<segments.length; i++){
+  for (var i=0; i<fig1Segments.length; i++){
     belongPoints = [];
     for (var j = 0; j<intersectionPoints.length; j++) {
-      if(classifyPoint(intersectionPoints[j],segments[i])==PointClassify.Belong)
+      if(classifyPoint(intersectionPoints[j],fig1Segments[i])==PointClassify.Belong)
       {
         belongPoints.push(intersectionPoints[j]);        
       }
     }
     if (belongPoints === undefined) continue;
+    if (belongPoints.length > 2){
+      belongPoints.sort(function (a,b){
+        if(a.x!=b.x)
+          return a.x-b.x;
+        else
+          return a.y-b.y;        
+      })
+    }
     for(var k=0; k<belongPoints.length-1; k++)
-    {
-      for(var l=k+1; l<belongPoints.length; l++)
+    {     
+      var midP = middlePoint(belongPoints[k],belongPoints[k+1]);        
+      if(inside(midP,fig2))
       {
-        var midP = middlePoint(belongPoints[k],belongPoints[l]);        
-        if(inside(midP,fig1) || inside(midP,fig2))
-        {
-          resultSegments.push([belongPoints[k],belongPoints[l]]);          
-        }
-      }
+        resultSegments.push([belongPoints[k],belongPoints[k+1]]);          
+      }     
     }
   }
+  for (var i=0; i<fig2Segments.length; i++){
+    belongPoints = [];
+    for (var j = 0; j<intersectionPoints.length; j++) {
+      if(classifyPoint(intersectionPoints[j],fig2Segments[i])==PointClassify.Belong)
+      {
+        belongPoints.push(intersectionPoints[j]);        
+      }
+    }
+    if (belongPoints === undefined) continue;
+    if (belongPoints.length > 2){
+      belongPoints.sort(function (a,b){
+        if(a.x!=b.x)
+          return a.x-b.x;
+        else
+          return a.y-b.y;        
+      })
+    }
+    for(var k=0; k<belongPoints.length-1; k++)
+    {     
+      var midP = middlePoint(belongPoints[k],belongPoints[k+1]);        
+      if(inside(midP,fig1))
+      {
+        resultSegments.push([belongPoints[k],belongPoints[k+1]]);          
+      }     
+    }
+  }
+
   var polygons = []
 
   for (var i=0; i<resultSegments.length-1; i++)
@@ -68,11 +103,11 @@ function intersects(fig1, fig2) {
     for(var j=i+1; j<resultSegments.length; j++)
     {
       if(resultSegments[j]==null) continue;
-      if(EqualPoints(point,resultSegments[j][0]))
+      if(equalPoints(point,resultSegments[j][0]))
       {
         point = resultSegments[j][1];        
       }
-      else if(EqualPoints(point,resultSegments[j][1]))
+      else if(equalPoints(point,resultSegments[j][1]))
       {
         point = resultSegments[j][0];        
       }
@@ -81,11 +116,11 @@ function intersects(fig1, fig2) {
         continue;
       }
       resultSegments[j]=null;
-      if(EqualPoints(polygon[0],point)) break;
+      if(equalPoints(polygon[0],point)) break;
       polygon.push(point)
       j=i;
     }
-    polygons.push(polygon);
+    if(polygon.length>2){    polygons.push(polygon);}
   }
 
   return polygons;
@@ -110,16 +145,16 @@ function contains(a, obj) {
        if (a[i] === obj) {
            return true;
        }
-       if(EqualPoints(a[i], obj))
+       if(equalPoints(a[i], obj))
        {
             return true;
        }
     }
     return false;
 }
-function EqualPoints(point1, point2)
+function equalPoints(point1, point2)
 {
-  if (point1.x==point2.x && point1.y==point2.y)return true;
+  if (Math.abs(point1.x-point2.x)<0.0001 && Math.abs(point1.y-point2.y)<0.0001)return true;
 }
 
 function middlePoint(point1, point2)
@@ -152,8 +187,10 @@ function classifyPoint(point, segment)
   var a = {x:(segment[1].x-segment[0].x), y:(segment[1].y-segment[0].y)};
   var b = {x:(point.x-segment[0].x), y:(point.y-segment[0].y)};
   var areaDif = a.x*b.y - b.x*a.y;
-  if(areaDif>0) return PointClassify.Left;
-  if(areaDif<0) return PointClassify.Right;
+  if(equalPoints(segment[0], point)) return PointClassify.Belong;
+  if(equalPoints(segment[1], point)) return PointClassify.Belong;
+  if(areaDif>0.00001) return PointClassify.Left;
+  if(areaDif<-0.00001) return PointClassify.Right;
   if(a.x*b.x < 0 || a.y*b.y < 0) return PointClassify.Behind;
   if(Math.sqrt(a.x*a.x+a.y*a.y)<Math.sqrt(b.x*b.x+b.y*b.y)) return PointClassify.Beyond;
   return PointClassify.Belong;
