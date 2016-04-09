@@ -21,6 +21,8 @@ function intersects(fig1, fig2) {
     getResultSegments(fig2Segments, intersectionPoints, fig1Segments, resultSegments);
 
     var polygons = [];
+
+    //Нахождение результирующих прямоугольников из отрезков
     for (var i = 0; i < resultSegments.length - 1; i++) {
         if (resultSegments[i] == null) continue;
         var polygon = [];
@@ -50,6 +52,7 @@ function intersects(fig1, fig2) {
     return polygons;
 }
 
+//Типы положения точки относительно отрезка
 var PointClassify = {
     Right: { value: 0, name: "Right" },
     Left: { value: 1, name: "Left" },
@@ -58,11 +61,13 @@ var PointClassify = {
     Beyond: { value: 4, name: "Beyond" }
 };
 
+//Типы отрезка относительно луча, выходящего из проеряемой точки
 var SegmentType = {
     Crossing: { value: 0, name: "Crossing" },
     Inessential: { value: 1, name: "Inessential" }
 };
 
+//Определяет содержит ли массив точку с такими же координатами
 function contains(a, obj) {
     var i = a.length;
     while (i--) {
@@ -76,6 +81,7 @@ function contains(a, obj) {
     return false;
 }
 
+
 function equalPoints(point1, point2) {
     if (Math.abs(point1.x - point2.x) < 0.0001 && Math.abs(point1.y - point2.y) < 0.0001) return true;
 }
@@ -87,6 +93,7 @@ function middlePoint(point1, point2) {
     };
 }
 
+//Определение точки пересечения отрезков
 function segmentsIntersect(segment1, segment2) {
     denominator = (segment2[1].y - segment2[0].y) * (segment1[1].x - segment1[0].x) -
         (segment2[1].x - segment2[0].x) * (segment1[1].y - segment1[0].y);
@@ -104,6 +111,7 @@ function segmentsIntersect(segment1, segment2) {
     };
 }
 
+//Классификация положения точки относительно отрезка
 function classifyPoint(point, segment) {
     var a = {
         x: (segment[1].x - segment[0].x),
@@ -123,6 +131,7 @@ function classifyPoint(point, segment) {
     return PointClassify.Belong;
 }
 
+//Класификация положения отрезка, относительно проверяющего луча
 function getSegmentType(point, segment) {
     switch (classifyPoint(point, segment)) {
         case PointClassify.Right:
@@ -134,6 +143,7 @@ function getSegmentType(point, segment) {
     }
 }
 
+//Определяет, лежит ли функция внутри многоугольника
 function inside(point, polygon) {
     var parity = 0;
     for (var i = 0; i < polygon.length; i++) {
@@ -144,6 +154,7 @@ function inside(point, polygon) {
     return parity === 1;
 }
 
+//Представления многоугольника в виде отрезков
 function segmentsOfPolygon(points) {
     var segments = []
     for (var i = 0; i < points.length; i++) {
@@ -152,6 +163,7 @@ function segmentsOfPolygon(points) {
     return segments;
 }
 
+//Определение всех точек, которые лежат внутри многоугольника
 function pointsInsidePolygon(points, polygon, resultPoints) {
     for (var i = 0; i < points.length; i++) {
         var point = points[i];
@@ -161,6 +173,7 @@ function pointsInsidePolygon(points, polygon, resultPoints) {
     }
 }
 
+//Определение отрезков, которые составляют пересекаемые области
 function getResultSegments(fig1Segments, intersectionPoints, fig2Segments, resultSegments) {
     for (var i = 0; i < fig1Segments.length; i++) {
         belongPoints = [];
